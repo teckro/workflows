@@ -1,0 +1,29 @@
+name: Terraform Docs
+
+on:
+  workflow_call:
+    inputs:
+      runner-label:
+        required: false
+        type: string
+        default: ubuntu-latest
+
+jobs:
+  terraform-docs:    
+    runs-on: ${{ inputs.runner-label }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Terraform Docs
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: terraform-docs/gh-actions@v1.0.0
+      with:
+        find-dir: ./
+        output-file: README.md
+        output-method: inject
+        git-push: "true"
+
+    - name: Commit & Push changes
+      uses: stefanzweifel/git-auto-commit-action@v4
