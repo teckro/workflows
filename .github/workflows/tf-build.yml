@@ -1,0 +1,62 @@
+name: Terraform Build
+
+on:
+  workflow_call:
+    inputs:
+      oidc:
+        required: true
+        type: string
+      region: 
+        required: false
+        type: string
+        default: eu-west-1
+      runner-label:
+        required: false
+        type: string
+        default: ubuntu-latest
+      working_dir:
+        required: false
+        type: string
+        default: .
+
+jobs:
+  tf-build:    
+    runs-on: ${{ inputs.runner-label }}
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.working_dir }}
+
+    steps:
+    # https://github.com/actions/setup-node 
+    # This is for self-hosted Runners.
+    - name: Setup Node
+      if: inputs.runner-label != 'ubuntu-linux'
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ inputs.oidc }}
+        aws-region: ${{ inputs.region }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 1.1.6
+        
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Format
+      run: terraform fmt -check        
