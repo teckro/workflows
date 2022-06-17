@@ -1,8 +1,11 @@
-name: Terraform Build
+name: Terraform Plan
 
 on:
   workflow_call:
     inputs:
+      oidc:
+        required: true
+        type: string
       region: 
         required: false
         type: string
@@ -15,6 +18,9 @@ on:
         required: false
         type: string
         default: .
+    secrets:
+      GH_TOKEN: 
+        required: true
 
 jobs:
   tf-build:    
@@ -41,10 +47,21 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ inputs.oidc }}
+        aws-region: ${{ inputs.region }}
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: 1.1.6
+        
+    - name: Terraform Init
+      run: |
+        git config --global url."https://oauth2:${{ secrets.GH_TOKEN }}@github.com".insteadOf https://github.com        
+        terraform init
 
-    - name: Terraform Format
-      run: terraform fmt -check        
+    - name: Terraform Plan
+      run: terraform plan
