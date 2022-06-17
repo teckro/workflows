@@ -56,7 +56,10 @@ jobs:
         terraform_version: 1.1.6
         
     - name: Terraform Init
-      run: terraform init
+      run: |
+        git config --global url."https://oauth2:${{ secrets.GH_TOKEN }}@github.com".insteadOf https://github.com
+        echo "Initializing"
+        terraform init
 
     - name: Terraform Format
       run: terraform fmt -check        
