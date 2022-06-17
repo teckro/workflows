@@ -58,6 +58,7 @@ jobs:
     - name: Terraform Init
       run: |
         git config --global url."https://oauth2:${{ secrets.GH_TOKEN }}@github.com".insteadOf https://github.com
+        echo "Initializing"
         terraform init
 
     - name: Terraform Format
