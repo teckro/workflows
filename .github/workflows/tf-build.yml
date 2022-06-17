@@ -17,7 +17,7 @@ on:
         default: .
 
 jobs:
-  tf-build:    
+  format-check:    
     runs-on: ${{ inputs.runner-label }}
     permissions:
       packages: write

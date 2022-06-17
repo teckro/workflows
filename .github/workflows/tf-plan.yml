@@ -23,7 +23,7 @@ on:
         required: true
 
 jobs:
-  tf-build:    
+  plan:    
     runs-on: ${{ inputs.runner-label }}
     permissions:
       packages: write
