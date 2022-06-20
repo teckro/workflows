@@ -1,4 +1,4 @@
-name: Release Workflow Actions
+name: Release
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create a GitHub release
+      - name: Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.tag_version.outputs.new_tag }}
