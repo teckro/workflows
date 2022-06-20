@@ -20,7 +20,7 @@ on:
         default: .
     secrets:
       GH_TOKEN: 
-        required: true
+        required: false
 
 jobs:
   plan:    
