@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ inputs.runner-label }}
 
     steps:
-      - name: Notifying For the Validate -> Plan -> [Apply - Main]
+      - name: Notifying For the Validate -> Docs
         uses: mshick/add-pr-comment@v1
         with:
           repo-token: ${{ secrets.GH_TOKEN }}
