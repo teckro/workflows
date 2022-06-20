@@ -46,5 +46,16 @@ jobs:
       with:
         terraform_version: 1.1.6
 
-    - name: Terraform Format
-      run: terraform fmt -check        
+    - name: Terraform Validate Format
+      run: |
+        export BASEDIR=$(pwd) && echo $BASEDIR
+        for dir in `find . -type f -name 'main.tf'`; 
+        do 
+          parentdir="$(dirname $dir)";                      
+          if [[ ${parentdir} != *"./tf-lock"* ]]; then
+            echo "-> Validating ${parentdir}"
+            cd $parentdir;
+            terraform fmt -check;
+            cd $BASEDIR;
+          fi;
+        done;
