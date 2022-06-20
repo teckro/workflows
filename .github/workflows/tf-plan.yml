@@ -60,57 +60,7 @@ jobs:
         
     - name: Terraform Init And Plan
       run: |
-        git config --global url."https://oauth2:${{ secrets.GH_TOKEN }}@github.com".insteadOf https://github.com        
-name: Terraform Build
-
-on:
-  workflow_call:
-    inputs:
-      region: 
-        required: false
-        type: string
-        default: eu-west-1
-      runner-label:
-        required: false
-        type: string
-        default: self-hosted
-      working_dir:
-        required: false
-        type: string
-        default: .
-
-jobs:
-  format-check:    
-    runs-on: ${{ inputs.runner-label }}
-    permissions:
-      packages: write
-      contents: read
-      id-token: write
-
-    defaults:
-      run:
-        shell: bash
-        working-directory: ${{ inputs.working_dir }}
-
-    steps:
-    # https://github.com/actions/setup-node 
-    # This is for self-hosted Runners.
-    - name: Setup Node
-      if: inputs.runner-label != 'ubuntu-linux'
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'
-
-    - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
-      with:
-        terraform_version: 1.1.6
-
-    - name: Terraform Validate and Plan
-      run: |
+        git config --global url."https://oauth2:${{ secrets.GH_TOKEN }}@github.com".insteadOf https://github.com
         export BASEDIR=$(pwd) && echo $BASEDIR
         for dir in `find . -type f -name 'main.tf'`; 
         do 
@@ -124,4 +74,3 @@ jobs:
             cd $BASEDIR;
           fi;
         done;
-
