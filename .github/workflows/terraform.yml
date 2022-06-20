@@ -18,7 +18,7 @@ on:
       GH_TOKEN: 
         required: false
 jobs:
-  notify-pr:    
+  notify:    
     runs-on: ${{ inputs.runner-label }}
 
     steps:
@@ -28,11 +28,12 @@ jobs:
           repo-token: ${{ secrets.GH_TOKEN }}
           repo-token-user-login: 'github-actions[bot]'
           message: |
-            ***Running terraform validate|plan|[apply - main]***
+            *** Running terraform validate|plan|[apply - main] ***
+            
             Results will display here momentarily... 
 
   validate-plan-apply:
-    needs: notify-pr   
+    needs: notify   
     runs-on: ${{ inputs.runner-label }}
 
     strategy:
