@@ -1,0 +1,60 @@
+name: Terraform Envs
+
+on:
+  workflow_call:
+    inputs:
+      runner-label:
+        required: false
+        type: string
+        default: self-hosted
+      working_dir:
+        required: false
+        type: string
+        default: .
+      exclude_dir:
+        required: false
+        type: string
+        default: tf-
+    outputs:
+      environments:
+        description: 'Output for the environments'
+        value: ${{ jobs.envs.outputs.environments }}
+
+jobs:
+  envs:
+    runs-on: ${{ inputs.runner-label }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.working_dir }}
+
+    outputs:
+      environments: ${{ steps.tf-envs.outputs.environments }} 
+
+    steps:
+    # https://github.com/actions/setup-node 
+    # This is for self-hosted Runners.
+    - name: Setup Node
+      if: inputs.runner-label != 'ubuntu-linux'
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - id: tf-envs
+      name: Terraform Environments
+      run: |                
+        export VAR="[" 
+        for dir in `find . -name 'main.tf' | grep -v ${{ inputs.exclude_dir }} | sed 's/\/main.tf//g'`
+        do
+          if [ "[" == "$VAR" ]
+          then
+            export VAR="${VAR}'${dir}'"
+          else
+            export VAR="${VAR},'${dir}'"; 
+          fi
+        done; 
+        export VAR="${VAR}]"        
+        echo "::set-output name=environments::{'envs':${VAR}}"

@@ -3,10 +3,9 @@ name: Terraform Build
 on:
   workflow_call:
     inputs:
-      region: 
-        required: false
+      tf-env:
+        required: true
         type: string
-        default: eu-west-1
       runner-label:
         required: false
         type: string
@@ -15,10 +14,18 @@ on:
         required: false
         type: string
         default: .
+      exclude_dir:
+        required: false
+        type: string
+        default: tf-
 
 jobs:
-  format-check:    
+  tf-fmt-check:          
     runs-on: ${{ inputs.runner-label }}
+
+    strategy:
+      matrix: ${{ fromJSON(inputs.tf-env) }}
+
     permissions:
       packages: write
       contents: read
@@ -27,8 +34,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ${{ inputs.working_dir }}
-
+                
     steps:
     # https://github.com/actions/setup-node 
     # This is for self-hosted Runners.
@@ -47,15 +53,5 @@ jobs:
         terraform_version: 1.1.6
 
     - name: Terraform Validate Format
-      run: |
-        export BASEDIR=$(pwd) && echo $BASEDIR
-        for dir in `find . -type f -name 'main.tf'`; 
-        do 
-          parentdir="$(dirname $dir)";                      
-          if [[ ${parentdir} != *"./tf-lock"* ]]; then
-            echo "-> Validating ${parentdir}"
-            cd $parentdir;
-            terraform fmt -check;
-            cd $BASEDIR;
-          fi;
-        done;
+      run: terraform fmt -check
+      working-directory: ${{ matrix.envs }}   

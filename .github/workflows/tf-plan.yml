@@ -1,30 +1,32 @@
-name: Terraform Plan
+name: Terraform Build
 
 on:
   workflow_call:
     inputs:
+      tf-env:
+        required: true
+        type: string
       oidc:
         required: true
         type: string
       region: 
         required: false
         type: string
-        default: eu-west-1
+        default: eu-west-1        
       runner-label:
         required: false
         type: string
-        default: ubuntu-latest
-      working_dir:
-        required: false
-        type: string
-        default: .
+        default: self-hosted
     secrets:
       GH_TOKEN: 
         required: false
-
 jobs:
-  plan:    
+  tf-plan:          
     runs-on: ${{ inputs.runner-label }}
+
+    strategy:
+      matrix: ${{ fromJSON(inputs.tf-env) }}
+
     permissions:
       packages: write
       contents: read
@@ -33,8 +35,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ${{ inputs.working_dir }}
-
+                
     steps:
     # https://github.com/actions/setup-node 
     # This is for self-hosted Runners.
@@ -46,7 +47,7 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v3
-      
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -57,20 +58,13 @@ jobs:
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: 1.1.6
-        
-    - name: Terraform Init And Plan
+
+    - name: Terraform Init
       run: |
         git config --global url."https://oauth2:${{ secrets.GH_TOKEN }}@github.com".insteadOf https://github.com
-        export BASEDIR=$(pwd) && echo $BASEDIR
-        for dir in `find . -type f -name 'main.tf'`; 
-        do 
-          parentdir="$(dirname $dir)";                      
-          if [[ ${parentdir} != *"./tf-lock"* ]]; then
-            echo "-> Validating ${parentdir}"
-            cd $parentdir;
-            terraform init; 
-            terraform validate;
-            terraform plan            
-            cd $BASEDIR;
-          fi;
-        done;
+        terraform init
+      working-directory: ${{ matrix.envs }} 
+
+    - name: Terraform Plan
+      run: terraform plan
+      working-directory: ${{ matrix.envs }}       
