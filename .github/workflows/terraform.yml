@@ -1,0 +1,147 @@
+name: Terraform
+
+on:
+  workflow_call:
+    inputs:
+      oidc:
+        required: true
+        type: string
+      region: 
+        required: false
+        type: string
+        default: eu-west-1        
+      runner-label:
+        required: false
+        type: string
+        default: self-hosted
+    secrets:
+      GH_TOKEN: 
+        required: false
+jobs:
+  notify-pr:    
+    runs-on: ${{ inputs.runner-label }}
+
+    steps:
+      - name: Notifying For the Validate -> Plan -> [Apply - Main]
+        uses: mshick/add-pr-comment@v1
+        with:
+          repo-token: ${{ secrets.GH_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          message: |
+            ***Running terraform validate|plan|[apply - main]***
+            Results will display here momentarily... 
+
+  validate-plan-apply:
+    needs: notify-pr   
+    runs-on: ${{ inputs.runner-label }}
+
+    strategy:
+      matrix: 
+        env:
+          - envs/tooling/common/r53_hosted_zone
+          # - envs/tooling/dev
+          # - envs/tooling/prod
+
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+
+    defaults:
+      run:
+        shell: bash
+                
+    steps:
+    # https://github.com/actions/setup-node 
+    # This is for self-hosted Runners.
+    - name: Setup Node
+      if: inputs.runner-label != 'ubuntu-linux'
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ inputs.oidc }}
+        aws-region: ${{ inputs.region }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 1.1.6
+
+    - name: Terraform Init
+      id: init
+      run: |
+        git config --global url."https://oauth2:${{ secrets.GH_TOKEN }}@github.com".insteadOf https://github.com
+        terraform init -input=false
+      working-directory: ./${{ matrix.env }}
+
+    - name: Terraform Check Format
+      id: format-chk
+      continue-on-error: true
+      run: terraform fmt -check
+      working-directory: ./${{ matrix.env }}
+
+    - name: Terraform Plan
+      id: plan
+      if: steps.format-chk.outcome == 'success'
+      run: | 
+        terraform plan -input=false -no-color -out=tfplan
+        terraform show -no-color tfplan
+      working-directory: ./${{ matrix.env }}
+
+    - name: Reformat Plan
+      if: steps.plan.outcome == 'success'
+      run: |
+        echo '${{ steps.plan.outputs.stdout || steps.plan.outputs.stderr }}' | sed -E 's/^([[:space:]]+)([-+])/\2\1/g' > plan.txt
+      working-directory: ./${{ matrix.env }}
+
+    - name: Store Plan Output
+      if: steps.plan.outcome == 'success'
+      run: |
+        PLAN=$(cat plan.txt)
+        echo "PLAN<<EOF" >> $GITHUB_ENV
+        echo "$PLAN" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV         
+      working-directory: ./${{ matrix.env }}
+      
+    - name: Terraform Apply
+      if: steps.plan.outcome == 'success' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+      id: apply
+      continue-on-error: true
+      run: terraform apply -input=false -no-color tfplan
+      working-directory: ./${{ matrix.env }}
+
+    - name: Post Success
+      if: steps.plan.outcome == 'success' || steps.apply.outcome == 'success'
+      uses: mshick/add-pr-comment@v1
+      with:
+        repo-token: ${{ secrets.GH_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]'
+        message: |
+          Applying **${{ matrix.env }}**:
+
+          ```diff
+          ${{ env.PLAN }}${{ steps.apply.outputs.stdout }}
+          ```
+
+    - name: Post Failure
+      if: steps.apply.outcome == 'failure' || steps.format-chk.outcome == 'failure'
+      uses: mshick/add-pr-comment@v1
+      with:
+        repo-token: ${{ secrets.GH_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]'
+        message: |
+          Validte|Plan|Apply failed for **${{ matrix.env }}**:          
+          ```
+          ${{ steps.apply.outputs.stderr }}${{ steps.format-chk.outputs.stderr }}${{ steps.format-chk.outputs.stdout }}
+          ```         
+
+    - name: Post Build Checks
+      if: steps.apply.outcome == 'failure' || steps.format-chk.outcome == 'failure'
+      run: exit 1              
