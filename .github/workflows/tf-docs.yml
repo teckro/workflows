@@ -35,3 +35,4 @@ jobs:
 
     - name: Commit & Push changes
       uses: stefanzweifel/git-auto-commit-action@v4
+      if: github.ref == 'refs/head/main' && github.event_name == 'push'
