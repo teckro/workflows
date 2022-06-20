@@ -6,13 +6,21 @@ on:
       runner-label:
         required: false
         type: string
-        default: ubuntu-latest
+        default: self-hosted
 
 jobs:
   terraform-docs:    
     runs-on: ${{ inputs.runner-label }}
     
     steps:
+    # https://github.com/actions/setup-node 
+    # This is for self-hosted Runners.
+    - name: Setup Node
+      if: inputs.runner-label != 'ubuntu-linux'
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
     - name: Checkout
       uses: actions/checkout@v3
     
@@ -27,3 +35,4 @@ jobs:
 
     - name: Commit & Push changes
       uses: stefanzweifel/git-auto-commit-action@v4
+      if: github.ref == 'refs/head/main' && github.event_name == 'push'
