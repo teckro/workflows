@@ -1,0 +1,101 @@
+name: Terraform Module
+
+on:
+  workflow_call:
+    inputs:      
+      runner-label:
+        required: false
+        type: string
+        default: self-hosted
+    secrets:
+      GH_TOKEN: 
+        required: false
+
+jobs:
+  notify:    
+    runs-on: ${{ inputs.runner-label }}
+
+    steps:
+      - name: Notifying For the Validate -> Docs
+        uses: mshick/add-pr-comment@v1
+        with:
+          repo-token: ${{ secrets.GH_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          message: |
+            *** Running terraform validate and terraform-docs ***
+
+            Results will display here momentarily... 
+
+  validate-docs:
+    needs: notify   
+    runs-on: ${{ inputs.runner-label }}
+
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+
+    defaults:
+      run:
+        shell: bash        
+                
+    steps:
+    # https://github.com/actions/setup-node 
+    # This is for self-hosted Runners.
+    - name: Setup Node
+      if: inputs.runner-label != 'ubuntu-linux'
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 1.1.6
+
+    - name: Terraform Check Format
+      id: format-chk
+      continue-on-error: true
+      run: terraform fmt -check
+
+    - name: Terraform Docs
+      id: docs
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.format-chk.outcome == 'success'
+      uses: terraform-docs/gh-actions@v1.0.0
+      with:
+        find-dir: ./
+        output-file: README.md
+        output-method: inject
+        git-push: "true"
+
+    - name: Post Success
+      if: steps.format-chk.outcome == 'success' && steps.docs.outcome == 'success'
+      uses: mshick/add-pr-comment@v1
+      with:
+        repo-token: ${{ secrets.GH_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]'
+        message: |
+          Format and Terraform Docs Success
+
+    - name: Post Failure
+      if: steps.format-chk.outcome == 'failure' || steps.docs.outcome == 'failure'
+      uses: mshick/add-pr-comment@v1
+      with:
+        repo-token: ${{ secrets.GH_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]'
+        message: |
+          Validate failed:          
+          ```
+          ${{ steps.docs.outputs.stderr }}${{ steps.format-chk.outputs.stderr }}${{ steps.format-chk.outputs.stdout }}
+          ```
+
+    - name: Commit & Push changes
+      uses: stefanzweifel/git-auto-commit-action@v4
+      if: github.ref == 'refs/head/main' && github.event_name == 'push' && steps.format-chk.outcome == 'success' && steps.docs.outcome == 'success'
+
+    - name: Post Build Checks
+      if: steps.docs.outcome == 'failure' || steps.format-chk.outcome == 'failure'
+      run: exit 1              
