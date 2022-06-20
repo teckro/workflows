@@ -10,14 +10,14 @@ on:
       runner-label:
         required: false
         type: string
-        default: ubuntu-latest
+        default: self-hosted
       working_dir:
         required: false
         type: string
         default: .
 
 jobs:
-  tf-build:    
+  format-check:    
     runs-on: ${{ inputs.runner-label }}
     permissions:
       packages: write

@@ -1,4 +1,4 @@
-name: Release Workflow Actions
+name: Release
 
 on:
   workflow_run:
@@ -23,7 +23,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create a GitHub release
+      - name: Release
         uses: ncipollo/release-action@v1
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         with:

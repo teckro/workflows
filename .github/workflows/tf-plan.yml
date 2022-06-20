@@ -20,10 +20,10 @@ on:
         default: .
     secrets:
       GH_TOKEN: 
-        required: true
+        required: false
 
 jobs:
-  tf-build:    
+  plan:    
     runs-on: ${{ inputs.runner-label }}
     permissions:
       packages: write
