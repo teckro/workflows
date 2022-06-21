@@ -29,7 +29,7 @@ jobs:
           repo-token-user-login: 'github-actions[bot]'
           message: |
             *** Running terraform validate|plan|[apply - main] ***
-            
+
             Results will display here momentarily... 
 
   validate-plan-apply:
@@ -74,6 +74,12 @@ jobs:
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: 1.1.6
+    
+    - name: Terraform Check Format
+      id: format-chk
+      continue-on-error: true
+      run: terraform fmt -check
+      working-directory: ./${{ matrix.env }}
 
     - name: Terraform Init
       id: init
@@ -82,15 +88,9 @@ jobs:
         terraform init -input=false
       working-directory: ./${{ matrix.env }}
 
-    - name: Terraform Check Format
-      id: format-chk
-      continue-on-error: true
-      run: terraform fmt -check
-      working-directory: ./${{ matrix.env }}
-
     - name: Terraform Plan
       id: plan
-      if: steps.format-chk.outcome == 'success'
+      if: steps.format-chk.outcome == 'success' && steps.init.outcome == 'success'
       run: | 
         terraform plan -input=false -no-color -out=tfplan
         terraform show -no-color tfplan
