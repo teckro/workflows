@@ -14,6 +14,13 @@ on:
         required: false
         type: string
         default: self-hosted
+      envs:
+        required: false
+        type: string
+        default: "['envs/tooling/common/r53_hosted_zone']"
+      downstream-invocation:
+        type: string
+        required: false
     secrets:
       GH_TOKEN: 
         required: false
@@ -38,10 +45,7 @@ jobs:
 
     strategy:
       matrix: 
-        env:
-          - envs/tooling/common/r53_hosted_zone
-          # - envs/tooling/dev
-          # - envs/tooling/prod
+        env: ${{fromJSON(inputs.envs)}}
 
     permissions:
       packages: write
@@ -144,5 +148,19 @@ jobs:
           ```         
 
     - name: Post Build Checks
+      id: post-build-check
       if: steps.apply.outcome == 'failure' || steps.format-chk.outcome == 'failure'
-      run: exit 1              
+      run: exit 1
+    
+    - name: Invoke Workflow
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.apply.outcome == 'success' && inputs.downstream-invocation != null
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ secrets.GH_TOKEN }}
+        script: |
+          await github.rest.actions.createWorkflowDispatch({
+            owner: 'teckro',
+            repo: '${{ inputs.downstream-invocation }}',
+            workflow_id: 'main.yml',
+            ref: 'main',
+          });
