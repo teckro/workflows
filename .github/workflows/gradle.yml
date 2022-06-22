@@ -17,12 +17,19 @@ on:
         default: self-hosted
       nexus-url:
         type: string
-        required: true        
+        required: true   
+      sonar-host-url:
+        required: true
+        type: string             
     secrets:
       NEXUS_PASSWORD:
         required: true
       NEXUS_USERNAME:
-        required: true      
+        required: true
+      SONAR_TOKEN:
+        required: true
+      GH_TOKEN:
+        required: true
 
   push:
     branches: [ "main" ]
@@ -34,7 +41,22 @@ permissions:
   contents: read
 
 jobs:
+  
+  notify:
+    runs-on: ${{ inputs.runner-label }}
+    steps:
+      - name: Notifying For Build and Validation
+        uses: mshick/add-pr-comment@v1
+        with:
+          repo-token: ${{ secrets.GH_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          message: |
+            *** Running Gradle Build and SonarQube Scan with Quality Gate ***
+
+            Results will display here momentarily... 
+
   build:
+    needs: notify
     runs-on: ${{ inputs.runner-label }}
 
     steps:
@@ -56,8 +78,53 @@ jobs:
         distribution: 'corretto'
         cache: 'gradle'
 
+    - name: Cache Gradle packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+        restore-keys: ${{ runner.os }}-gradle    
+
+    - name: Cache SonarQube packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
     - name: Build
       id: build
       uses: gradle/gradle-build-action@0d13054264b0bb894ded474f08ebb30921341cee
       with:
         arguments: ${{ inputs.gradle-commands }} -PnexusUsername=${{ secrets.NEXUS_USERNAME }} -PnexusPassword=${{ secrets.NEXUS_PASSWORD }} -PnexusUrl=${{ inputs.nexus-url }}
+   
+    - name: SonarQube Scan
+      id: scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
+
+    - name: SonarQube Quality Gate check
+      id: quality-gates
+      continue-on-error: true
+      uses: sonarsource/sonarqube-quality-gate-action@master
+      # Force to fail step after specific time
+      timeout-minutes: 5      
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    - name: Post Quality Gate Results      
+      uses: mshick/add-pr-comment@v1
+      with:
+        repo-token: ${{ secrets.GH_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]'
+        message: |
+          Quality Gates Results:
+          ```
+          ${{ steps.quality-gates.outputs.stdout }}${{ steps.quality-gates.outputs.err }}
+          ```
+
+    - name: Post Build Checks
+      if: steps.quality-gates.outcome == 'failure'
+      run: exit 1              
