@@ -1,15 +1,11 @@
-name: Gradle
+name: Node
 
 on:
   workflow_call:
-    inputs: 
-      gradle-commands:
+    inputs:  
+      node-version:
         required: false
-        type: string
-        default: clean build  
-      java-version:
-        required: false
-        default: 8
+        default: 16
         type: string
       runner-label:
         required: false
@@ -22,10 +18,6 @@ on:
         required: true
         type: string             
     secrets:
-      NEXUS_PASSWORD:
-        required: true
-      NEXUS_USERNAME:
-        required: true
       SONAR_TOKEN:
         required: true
       GH_TOKEN:
@@ -51,7 +43,7 @@ jobs:
           repo-token: ${{ secrets.GH_TOKEN }}
           repo-token-user-login: 'github-actions[bot]'
           message: |
-            *** Running Gradle Build and SonarQube Scan with Quality Gate ***
+            *** Running Node Build and SonarQube Scan with Quality Gate ***
 
             Results will display here momentarily... 
 
@@ -62,42 +54,36 @@ jobs:
     steps:
     # https://github.com/actions/setup-node 
     # This is for self-hosted Runners.
-    - name: Setup Node
-      if: inputs.runner-label != 'ubuntu-linux'
-      uses: actions/setup-node@v2
+    - name: Setup Node      
+      uses: actions/setup-node@v3
       with:
-        node-version: '14'
+        node-version: ${{ inputs.node-version }}
+        # registry-url: ${{ inputs.nexus-url }}
 
     - uses: actions/checkout@v3
+    - name: Setup Registry
+      run: |
+        echo "registry=${{ inputs.nexus-url }}" > .npmrc
+        echo -e "email=engineering@teckro.com" >> .npmrc
+        echo -e "legacy-peer-deps=true" >> .npmrc
 
-    - name: Set up JDK ${{ inputs.java-version }}
-      id: jdk-setup
-      uses: actions/setup-java@v3
-      with:
-        java-version: ${{ inputs.java-version }}
-        distribution: 'corretto'
-        cache: 'gradle'
-
-    - name: Cache Gradle packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-        restore-keys: ${{ runner.os }}-gradle    
-
-    - name: Cache SonarQube packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.sonar/cache
-        key: ${{ runner.os }}-sonar
-        restore-keys: ${{ runner.os }}-sonar
-
+    - name: Install Dependencies
+      id: install-dep
+      run: |
+        cat .npmrc
+        npm cache verify
+        npm ci
+    
     - name: Build
       id: build
-      uses: gradle/gradle-build-action@0d13054264b0bb894ded474f08ebb30921341cee
-      with:
-        arguments: ${{ inputs.gradle-commands }} -PnexusUsername=${{ secrets.NEXUS_USERNAME }} -PnexusPassword=${{ secrets.NEXUS_PASSWORD }} -PnexusUrl=${{ inputs.nexus-url }}
-   
+      run: npm run build
+
+    - name: Test and Lint
+      id: test-lint
+      run: |
+        npm run test:ci
+        npm run lint
+
     - name: SonarQube Scan
       id: scan
       uses: sonarsource/sonarqube-scan-action@master
@@ -121,7 +107,7 @@ jobs:
         repo-token-user-login: 'github-actions[bot]'
         message: |
           Quality Gates Results: `${{ steps.quality-gates.outcome }}` see results on ${{ inputs.sonar-host-url }}
-
+          
     - name: Post Build Checks
       if: steps.quality-gates.outcome == 'failure'
       run: exit 1              
