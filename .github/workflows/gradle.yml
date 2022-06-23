@@ -120,10 +120,7 @@ jobs:
         repo-token: ${{ secrets.GH_TOKEN }}
         repo-token-user-login: 'github-actions[bot]'
         message: |
-          Quality Gates Results:
-          ```
-          ${{ steps.quality-gates.outputs.stdout }}${{ steps.quality-gates.outputs.err }}
-          ```
+          Quality Gates Results: `${{ steps.quality-gates.outcome }}` see results on ${{ inputs.sonar-host-url }}
 
     - name: Post Build Checks
       if: steps.quality-gates.outcome == 'failure'

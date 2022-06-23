@@ -45,7 +45,7 @@ jobs:
 
     strategy:
       matrix: 
-        env: ${{fromJSON(inputs.envs)}}
+        env: ${{ fromJSON(inputs.envs) }}
 
     permissions:
       packages: write
