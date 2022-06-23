@@ -1,0 +1,86 @@
+name: Gradle
+
+on:
+  workflow_call:
+    inputs:
+      gradle-commands:
+        required: true
+        type: string
+        default: ""
+            
+      namespace: 
+        required: true
+        type: string
+        default: qa-new
+      tags:
+        required: true
+        type: string
+
+      # Runtime Specific  
+      java-version:
+        required: false
+        default: 11
+        type: string
+      runner-label:
+        required: false
+        type: string
+        default: self-hosted
+      nexus-url:
+        type: string
+        required: true            
+    secrets:
+      NEXUS_PASSWORD:
+        required: true
+      NEXUS_USERNAME:
+        required: true      
+      GH_TOKEN:
+        required: true
+
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ inputs.runner-label }}
+
+    steps:
+    # https://github.com/actions/setup-node 
+    # This is for self-hosted Runners.
+    - name: Setup Node
+      if: inputs.runner-label != 'ubuntu-linux'
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ inputs.java-version }}
+      id: jdk-setup
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: 'corretto'
+        cache: 'gradle'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+        restore-keys: ${{ runner.os }}-gradle    
+
+    - name: Run Test
+      id: test
+      uses: gradle/gradle-build-action@0d13054264b0bb894ded474f08ebb30921341cee
+      with:
+        arguments: ${{ inputs.gradle-commands }} -Dtags=${{ inputs.tags }} -PnexusUsername=${{ secrets.NEXUS_USERNAME }} -PnexusPassword=${{ secrets.NEXUS_PASSWORD }} -PnexusUrl=${{ inputs.nexus-url }}
+      env:
+        namespace: ${{ inputs.namespace }}
+
+         
