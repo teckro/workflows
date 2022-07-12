@@ -78,11 +78,15 @@ jobs:
       id: build
       run: npm run build
 
-    - name: Test and Lint
-      id: test-lint
+    - name: Lint
+      id: lint
+      run: |
+        npm run lint
+
+    - name: Test
+      id: test
       run: |
         npm run test:ci
-        npm run lint
 
     - name: SonarQube Scan
       id: scan
