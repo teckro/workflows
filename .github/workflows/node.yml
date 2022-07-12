@@ -61,6 +61,8 @@ jobs:
         # registry-url: ${{ inputs.nexus-url }}
 
     - uses: actions/checkout@v3
+    - uses: wagoid/commitlint-github-action@v5
+
     - name: Setup Registry
       run: |
         echo "registry=${{ inputs.nexus-url }}" > .npmrc
