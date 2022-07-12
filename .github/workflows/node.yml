@@ -2,7 +2,7 @@ name: Node
 
 on:
   workflow_call:
-    inputs:  
+    inputs:
       node-version:
         required: false
         default: 16
@@ -13,10 +13,10 @@ on:
         default: self-hosted
       nexus-url:
         type: string
-        required: true   
+        required: true
       sonar-host-url:
         required: true
-        type: string             
+        type: string
     secrets:
       SONAR_TOKEN:
         required: true
@@ -33,7 +33,7 @@ permissions:
   contents: read
 
 jobs:
-  
+
   notify:
     runs-on: ${{ inputs.runner-label }}
     steps:
@@ -45,29 +45,31 @@ jobs:
           message: |
             *** Running Node Build and SonarQube Scan with Quality Gate ***
 
-            Results will display here momentarily... 
+            Results will display here momentarily...
 
   build:
     needs: notify
     runs-on: ${{ inputs.runner-label }}
 
     steps:
-    # https://github.com/actions/setup-node 
+    # https://github.com/actions/setup-node
     # This is for self-hosted Runners.
-    - name: Setup Node      
+    - name: Setup Node
       uses: actions/setup-node@v3
       with:
         node-version: ${{ inputs.node-version }}
         # registry-url: ${{ inputs.nexus-url }}
 
     - uses: actions/checkout@v3
-    - uses: wagoid/commitlint-github-action@v5
 
     - name: Setup Registry
       run: |
-        echo "registry=${{ inputs.nexus-url }}" > .npmrc
-        echo -e "email=engineering@teckro.com" >> .npmrc
-        echo -e "legacy-peer-deps=true" >> .npmrc
+          echo "registry=${{ inputs.nexus-url }}" > .npmrc
+          echo -e "email=engineering@teckro.com" >> .npmrc
+          echo -e "legacy-peer-deps=true" >> .npmrc
+
+    - name: Lint Commit
+      run: git log -1 --pretty=format:"%s" | npx commitlint
 
     - name: Install Dependencies
       id: install-dep
@@ -75,7 +77,7 @@ jobs:
         cat .npmrc
         npm cache verify
         npm ci
-    
+
     - name: Build
       id: build
       run: npm run build
@@ -102,18 +104,18 @@ jobs:
       continue-on-error: true
       uses: sonarsource/sonarqube-quality-gate-action@master
       # Force to fail step after specific time
-      timeout-minutes: 5      
+      timeout-minutes: 5
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-    - name: Post Quality Gate Results      
+    - name: Post Quality Gate Results
       uses: mshick/add-pr-comment@v1
       with:
         repo-token: ${{ secrets.GH_TOKEN }}
         repo-token-user-login: 'github-actions[bot]'
         message: |
           Quality Gates Results: `${{ steps.quality-gates.outcome }}` see results on ${{ inputs.sonar-host-url }}
-          
+
     - name: Post Build Checks
       if: steps.quality-gates.outcome == 'failure'
-      run: exit 1              
+      run: exit 1
