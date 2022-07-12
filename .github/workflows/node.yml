@@ -63,14 +63,14 @@ jobs:
     - uses: actions/checkout@v3
     - name: Setup Registry
       run: |
-        echo "registry=${{ inputs.nexus-url }}" > .npmrc
-        echo -e "email=engineering@teckro.com" >> .npmrc
-        echo -e "legacy-peer-deps=true" >> .npmrc
+        npm config set registry "${{ inputs.nexus-url }}" -g
+        npm config set email "engineering@teckro.com" -g
+        npm config set legacy-peer-deps true -g
 
     - name: Install Dependencies
       id: install-dep
       run: |
-        cat .npmrc
+        npm config list
         npm cache verify
         npm ci
     
