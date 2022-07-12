@@ -61,7 +61,9 @@ jobs:
         # registry-url: ${{ inputs.nexus-url }}
 
     - uses: actions/checkout@v3
-    - uses: wagoid/commitlint-github-action@v5
+
+    - name: Lint Commit
+      run: git log -1 --pretty=format:"%s" | npx commitlint
 
     - name: Setup Registry
       run: |
