@@ -24,23 +24,23 @@ on:
     secrets:
       GH_TOKEN: 
         required: false
-jobs:
-  notify:    
-    runs-on: ${{ inputs.runner-label }}
+# jobs:
+#   notify:    
+#     runs-on: ${{ inputs.runner-label }}
 
-    steps:
-      - name: Notifying For the Validate -> Plan -> [Apply - Main]
-        uses: mshick/add-pr-comment@v1
-        with:
-          repo-token: ${{ secrets.GH_TOKEN }}
-          repo-token-user-login: 'github-actions[bot]'
-          message: |
-            *** Running terraform validate|plan|[apply - main] ***
+#     steps:
+#       - name: Notifying For the Validate -> Plan -> [Apply - Main]
+#         uses: mshick/add-pr-comment@v1
+#         with:
+#           repo-token: ${{ secrets.GH_TOKEN }}
+#           repo-token-user-login: 'github-actions[bot]'
+#           message: |
+#             *** Running terraform validate|plan|[apply - main] ***
 
-            Results will display here momentarily... 
+#             Results will display here momentarily...
 
   validate-plan-apply:
-    needs: notify   
+    # needs: notify
     runs-on: ${{ inputs.runner-label }}
 
     strategy:
@@ -85,6 +85,7 @@ jobs:
           rm /tmp/awscliv2.zip
           sudo /tmp/aws/install --update
           rm -rf /tmp/aws/
+          aws sts get-caller-identity
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
