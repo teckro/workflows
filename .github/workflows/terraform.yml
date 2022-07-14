@@ -80,11 +80,7 @@ jobs:
 
     - name: configure eks
       run:  |
-          # curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
-          # unzip -q /tmp/awscliv2.zip -d /tmp
-          # rm /tmp/awscliv2.zip
-          # sudo /tmp/aws/install --update
-          # rm -rf /tmp/aws/
+          curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle-1.25.0.zip" -o "awscli-bundle.zip" && unzip awscli-bundle.zip && ./awscli-bundle/install -b /bin/aws
           aws sts get-caller-identity
           aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks --role-arn arn:aws:iam::445706106932:role/tooling-iam-gh
           cat /home/runner/.kube/config
