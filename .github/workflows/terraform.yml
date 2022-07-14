@@ -73,10 +73,6 @@ jobs:
       with:
         role-to-assume: ${{ inputs.oidc }}
         aws-region: ${{ inputs.region }}
-    
-    - name: setup aws-iam-authenticator
-      uses: prepor/action-aws-iam-authenticator@master
-    - run: aws-iam-authenticator version
 
     - name: configure eks
       run:  |
@@ -114,6 +110,8 @@ jobs:
       id: plan
       if: steps.format-chk.outcome == 'success' && steps.init.outcome == 'success'
       run: | 
+        cat /home/runner/.kube/config
+        kubectl get pods
         terraform plan -input=false -no-color -out=tfplan
         terraform show -no-color tfplan
       working-directory: ./${{ matrix.env }}
