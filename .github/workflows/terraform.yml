@@ -81,7 +81,7 @@ jobs:
     - name: configure eks
       run:  |
           cat /etc/os-release
-          apt install -y curl python3
+          sudo apt install -y curl python3
           VERSION=$(curl --silent https://storage.googleapis.com/kubernetes-release/release/stable.txt)
           curl https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl --progress-bar --location --remote-name
           curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle-1.25.0.zip" -o "awscli-bundle.zip" && unzip awscli-bundle.zip && ./awscli-bundle/install -b /bin/aws
