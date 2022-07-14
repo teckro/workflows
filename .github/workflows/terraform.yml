@@ -87,6 +87,8 @@ jobs:
           rm -rf /tmp/aws/
           aws sts get-caller-identity
           aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks
+          aws-iam-authenticator token -i dev-tooling-eks
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
