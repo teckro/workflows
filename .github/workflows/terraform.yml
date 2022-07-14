@@ -84,7 +84,6 @@ jobs:
           VERSION=$(curl --silent https://storage.googleapis.com/kubernetes-release/release/stable.txt)
           curl https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl --progress-bar --location --remote-name
           chmod +x ./kubectl && sudo cp -p ./kubectl /bin/kubectl
-          aws sts get-caller-identity
           aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks
           cat /home/runner/.kube/config
 
@@ -110,8 +109,6 @@ jobs:
       id: plan
       if: steps.format-chk.outcome == 'success' && steps.init.outcome == 'success'
       run: | 
-        cat /home/runner/.kube/config
-        kubectl get pods
         terraform plan -input=false -no-color -out=tfplan
         terraform show -no-color tfplan
       working-directory: ./${{ matrix.env }}
