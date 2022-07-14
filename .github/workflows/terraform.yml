@@ -73,6 +73,10 @@ jobs:
       with:
         role-to-assume: ${{ inputs.oidc }}
         aws-region: ${{ inputs.region }}
+    
+    - name: setup aws-iam-authenticator
+      uses: prepor/action-aws-iam-authenticator@master
+    - run: aws-iam-authenticator version
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
