@@ -91,7 +91,6 @@ jobs:
           aws sts get-caller-identity
           aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks --role-arn arn:aws:iam::445706106932:role/tooling-iam-gh
           cat /home/runner/.kube/config
-          kubectl get pods
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
