@@ -88,7 +88,7 @@ jobs:
           cat /home/runner/.kube/config
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
+      uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: 1.2.3
     
