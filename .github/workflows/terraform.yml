@@ -86,7 +86,7 @@ jobs:
           sudo /tmp/aws/install --update
           rm -rf /tmp/aws/
           aws sts get-caller-identity
-          aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks
+          aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks --role-arn arn:aws:iam::445706106932:role/tooling-iam-gh
           aws-iam-authenticator token -i dev-tooling-eks
 
     - name: Setup Terraform
