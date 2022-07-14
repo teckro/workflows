@@ -80,10 +80,9 @@ jobs:
 
     - name: configure eks
       run:  |
+          apk add --no-cache curl python3 && ln -sf python3 /usr/bin/python
           VERSION=$(curl --silent https://storage.googleapis.com/kubernetes-release/release/stable.txt)
           curl https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl --progress-bar --location --remote-name
-          kubectl version --short
-          apk add --no-cache curl python3 && ln -sf python3 /usr/bin/python
           curl -s "https://s3.amazonaws.com/aws-cli/awscli-bundle-1.25.0.zip" -o "awscli-bundle.zip" && unzip awscli-bundle.zip && ./awscli-bundle/install -b /bin/aws
           /bin/aws --version
           aws sts get-caller-identity
