@@ -89,7 +89,7 @@ jobs:
           curl https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl --progress-bar --location --remote-name
           chmod +x ./kubectl && sudo cp -p ./kubectl /bin/kubectl
           aws sts get-caller-identity
-          aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks --role-arn arn:aws:iam::445706106932:role/tooling-iam-gh
+          aws eks update-kubeconfig --region eu-west-1 --name dev-tooling-eks
           cat /home/runner/.kube/config
 
     - name: Setup Terraform
