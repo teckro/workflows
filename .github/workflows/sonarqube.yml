@@ -1,0 +1,73 @@
+name: SonarQube
+
+on:
+  workflow_call:
+    inputs: 
+      runner-label:
+        required: false
+        type: string
+        default: self-hosted
+      sonar-host-url:
+        required: true
+        type: string
+      artifact-name:
+        required: true
+        type: string
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      GH_TOKEN:
+        required: true
+
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:  
+  scan:    
+    runs-on: [self-hosted, '${{ inputs.runner-label }}']
+
+    steps:
+    # https://github.com/actions/setup-node 
+    # This is for self-hosted Runners.
+    - name: Setup Node
+      if: inputs.runner-label != 'ubuntu-linux'
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - uses: actions/checkout@v3
+
+    - name: Download Artifacts for Scanning
+      uses: actions/download-artifact@v3
+    - name: Prepare Artifacts for Scanning
+      run: |                
+        cp -rf ${{ inputs.artifact-name }}/* .
+
+    - name: Cache SonarQube packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: SonarQube Scan
+      id: scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
+
+    - name: SonarQube Quality Gate check
+      id: quality-gates      
+      uses: sonarsource/sonarqube-quality-gate-action@master
+      # Force to fail step after specific time
+      timeout-minutes: 5      
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
