@@ -25,22 +25,22 @@ on:
       GH_TOKEN: 
         required: false
 jobs:
-  notify:    
-    runs-on: ${{ inputs.runner-label }}
+  # notify:    
+  #   runs-on: ${{ inputs.runner-label }}
 
-    steps:
-      - name: Notifying For the Validate -> Plan -> [Apply - Main]
-        uses: mshick/add-pr-comment@v1
-        with:
-          repo-token: ${{ secrets.GH_TOKEN }}
-          repo-token-user-login: 'github-actions[bot]'
-          message: |
-            *** Running terraform validate|plan|[apply - main] ***
+  #   steps:
+  #     - name: Notifying For the Validate -> Plan -> [Apply - Main]
+  #       uses: mshick/add-pr-comment@v1
+  #       with:
+  #         repo-token: ${{ secrets.GH_TOKEN }}
+  #         repo-token-user-login: 'github-actions[bot]'
+  #         message: |
+  #           *** Running terraform validate|plan|[apply - main] ***
 
-            Results will display here momentarily... 
+  #           Results will display here momentarily... 
 
   validate-plan-apply:
-    needs: notify   
+    # needs: notify   
     runs-on: ${{ inputs.runner-label }}
 
     strategy:
