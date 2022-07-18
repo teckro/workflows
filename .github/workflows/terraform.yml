@@ -96,7 +96,7 @@ jobs:
       id: plan
       if: steps.format-chk.outcome == 'success' && steps.init.outcome == 'success'
       run: | 
-        terraform plan -input=false -no-color -out=tfplan
+        terraform plan -input=false -no-color -out=tfplan -var="datadog_api_key=${{ secrets.DATADOG_API_KEY }}" -var="datadog_app_key=${{ secrets.DATADOG_APP_KEY }}"
         terraform show -no-color tfplan
       working-directory: ./${{ matrix.env }}
 
