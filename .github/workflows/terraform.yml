@@ -24,6 +24,10 @@ on:
     secrets:
       GH_TOKEN: 
         required: false
+      DATADOG_API_KEY:
+        required: false
+      DATADOG_APP_KEY:
+        required: false
 jobs:
   # notify:    
   #   runs-on: ${{ inputs.runner-label }}
