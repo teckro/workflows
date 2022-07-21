@@ -2,11 +2,11 @@ name: Gradle
 
 on:
   workflow_call:
-    inputs: 
+    inputs:
       gradle-commands:
         required: false
         type: string
-        default: clean build  
+        default: clean build
       java-version:
         required: false
         default: 8
@@ -17,10 +17,10 @@ on:
         default: self-hosted
       nexus-url:
         type: string
-        required: true   
+        required: true
       sonar-host-url:
         required: true
-        type: string             
+        type: string
     secrets:
       NEXUS_PASSWORD:
         required: true
@@ -41,7 +41,7 @@ permissions:
   contents: read
 
 jobs:
-  
+
   notify:
     runs-on: ${{ inputs.runner-label }}
     steps:
@@ -60,68 +60,63 @@ jobs:
     runs-on: ${{ inputs.runner-label }}
 
     steps:
-    # https://github.com/actions/setup-node 
-    # This is for self-hosted Runners.
-    - name: Setup Node
-      if: inputs.runner-label != 'ubuntu-linux'
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'
+      # https://github.com/actions/setup-node
+      # This is for self-hosted Runners.
+      - name: Setup Node
+        if: inputs.runner-label != 'ubuntu-linux'
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up JDK ${{ inputs.java-version }}
-      id: jdk-setup
-      uses: actions/setup-java@v3
-      with:
-        java-version: ${{ inputs.java-version }}
-        distribution: 'corretto'
-        cache: 'gradle'
+      - name: Set up JDK ${{ inputs.java-version }}
+        id: jdk-setup
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'corretto'
 
-    - name: Cache Gradle packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-        restore-keys: ${{ runner.os }}-gradle    
+      - name: Cache SonarQube packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
 
-    - name: Cache SonarQube packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.sonar/cache
-        key: ${{ runner.os }}-sonar
-        restore-keys: ${{ runner.os }}-sonar
+      - name: Build
+        id: build
+        uses: gradle/gradle-build-action@0d13054264b0bb894ded474f08ebb30921341cee
+        with:
+          gradle-version: wrapper
+          arguments: ${{ inputs.gradle-commands }} -PnexusUsername=${{ secrets.NEXUS_USERNAME }} -PnexusPassword=${{ secrets.NEXUS_PASSWORD }} -PnexusUrl=${{ inputs.nexus-url }}
 
-    - name: Build
-      id: build
-      uses: gradle/gradle-build-action@0d13054264b0bb894ded474f08ebb30921341cee
-      with:
-        arguments: ${{ inputs.gradle-commands }} -PnexusUsername=${{ secrets.NEXUS_USERNAME }} -PnexusPassword=${{ secrets.NEXUS_PASSWORD }} -PnexusUrl=${{ inputs.nexus-url }}
-   
-    - name: SonarQube Scan
-      id: scan
-      uses: sonarsource/sonarqube-scan-action@master
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
+      - name: SonarQube Scan
+        id: scan
+        uses: gradle/gradle-build-action@0d13054264b0bb894ded474f08ebb30921341cee
+        with:
+          gradle-version: wrapper
+          arguments: sonarqube -Psonar.login=${{ secrets.SONAR_TOKEN }} -PnexusUsername=${{ secrets.NEXUS_USERNAME }} -PnexusPassword=${{ secrets.NEXUS_PASSWORD }} -PnexusUrl=${{ inputs.nexus-url }}
 
-    - name: SonarQube Quality Gate check
-      id: quality-gates
-      continue-on-error: true
-      uses: sonarsource/sonarqube-quality-gate-action@master
-      # Force to fail step after specific time
-      timeout-minutes: 5      
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: SonarQube Quality Gate check
+        id: quality-gates
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        # Force to fail step after specific time
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          scanMetadataReportFile: build/sonar/report-task.txt
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-    - name: Post Quality Gate Results      
-      uses: mshick/add-pr-comment@v1
-      with:
-        repo-token: ${{ secrets.GH_TOKEN }}
-        repo-token-user-login: 'github-actions[bot]'
-        message: |
-          Quality Gates Results: `${{ steps.quality-gates.outcome }}` see results on ${{ inputs.sonar-host-url }}
+      - name: Post Quality Gate Results
+        uses: mshick/add-pr-comment@v1
+        with:
+          repo-token: ${{ secrets.GH_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          message: |
+            Quality Gates Results: `${{ steps.quality-gates.outcome }}` see results on ${{ inputs.sonar-host-url }}
 
-    - name: Post Build Checks
-      if: steps.quality-gates.outcome == 'failure'
-      run: exit 1              
+      - name: Post Build Checks
+        if: steps.quality-gates.outcome == 'failure'
+        run: exit 1
